@@ -1,53 +1,85 @@
-import { useReducer, useEffect } from 'react';
+import React from "react";
+import PropTypes from "prop-types";
+import { Box, Heading } from "@chakra-ui/react";
+import { Icon } from "@chakra-ui/react";
+import { TaskList } from "./components/TaskList";
+import { EmptyState } from "./components/EmptyState";
+import { useTasks } from "./useTasks";
 
-function getTasks(options) {
-  return fetch('/tasks', options).then((res) => res.json());
-}
+const FrownIcon = (props) => (
+  <Icon
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <circle cx="12" cy="12" r="10"></circle>
+    <path d="M16 16s-1.5-2-4-2-4 2-4 2M9 9h.01M15 9h.01" />
+  </Icon>
+);
 
-function updateTask(tasks, id, updatedTask) {
-  return tasks.map((task) =>
-    task.id === id ? { ...task, ...updatedTask } : task
-  );
-}
+export const InboxScreen = ({ error }) => {
+  const [tasks, dispatch] = useTasks();
 
-export const reducer = (tasks, action) => {
-  switch (action.type) {
-    case 'UPDATE_TASKS':
-      return action.tasks;
-    case 'ARCHIVE_TASK':
-      return updateTask(tasks, action.id, { state: 'TASK_ARCHIVED' });
-    case 'PIN_TASK':
-      return updateTask(tasks, action.id, { state: 'TASK_PINNED' });
-    case 'INBOX_TASK':
-      return updateTask(tasks, action.id, { state: 'TASK_INBOX' });
-    case 'EDIT_TITLE':
-      return updateTask(tasks, action.id, { title: action.title });
-    default:
-      return tasks;
+  const archiveTask = (archive, id) => {
+    dispatch({ type: archive ? "ARCHIVE_TASK" : "INBOX_TASK", id });
+  };
+
+  const deleteTask = (id) => {
+    dispatch({ type: "DELETE_TASK", id });
+  };
+
+  const togglePinTask = (state, id) => {
+    dispatch({ type: state === "TASK_PINNED" ? "INBOX_TASK" : "PIN_TASK", id });
+  };
+
+  const editTitle = (title, id) => {
+    dispatch({ type: "EDIT_TITLE", id, title });
+  };
+
+  if (error) {
+    return (
+      <EmptyState
+        h="75vh"
+        Icon={FrownIcon}
+        title="Oh no!"
+        subtitle="Something went wrong"
+      />
+    );
   }
+
+  return (
+    <Box p={4} bg="brand.300">
+      <Box as="nav" bg="brand.200" py={6} px={5}>
+        <Heading
+          as="h1"
+          fontSize="lg"
+          lineHeight="8"
+          color="brand.500"
+          textAlign={["center", "center", "left"]}
+        >
+          Taskbox
+        </Heading>
+      </Box>
+      <TaskList
+        tasks={tasks}
+        onArchiveTask={archiveTask}
+        onTogglePinTask={togglePinTask}
+        onEditTitle={editTitle}
+        onDeleteTask={deleteTask}
+      />
+    </Box>
+  );
 };
 
-export function useTasks() {
-  const [tasks, dispatch] = useReducer(reducer, []);
+InboxScreen.propTypes = {
+  error: PropTypes.string,
+};
 
-  useEffect(() => {
-    const abortController = new AbortController();
-    const signal = abortController.signal;
-
-    getTasks({ signal })
-      .then(({ tasks }) => {
-        dispatch({ type: 'UPDATE_TASKS', tasks });
-      })
-      .catch((error) => {
-        if (!abortController.signal.aborted) {
-          console.log(error);
-        }
-      });
-
-    return () => {
-      abortController.abort();
-    };
-  }, []);
-
-  return [tasks, dispatch];
-}
+InboxScreen.defaultProps = {
+  error: null,
+};
