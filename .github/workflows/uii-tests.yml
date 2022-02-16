@@ -65,10 +65,11 @@ jobs:
   # Run user flow tests with Cypress
   user-flow:
     runs-on: ubuntu-latest
+    needs: install-cache
     steps:
       - uses: actions/checkout@v2
       - name: restore yarn dependencies
-      uses: actions/cache@v2
+        uses: actions/cache@v2
         id: yarn-cache
         with:
           path: |
